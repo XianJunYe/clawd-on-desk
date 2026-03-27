@@ -1,6 +1,6 @@
 {
   "name": "clawd-on-desk",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "description": "A desktop pet that reacts to your Claude Code sessions in real-time.",
   "main": "src/main.js",
   "scripts": {
@@ -28,7 +28,12 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
             "arm64"
           ]
         }
@@ -63,7 +68,8 @@
       "assets/tray-icon*.png",
       "hooks/**/*",
       "extensions/**/*",
-      "agents/**/*"
+      "agents/**/*",
+      "update-config.json"
     ],
     "asarUnpack": [
       "hooks/**/*",
@@ -77,9 +83,8 @@
     ],
     "publish": [
       {
-        "provider": "github",
-        "owner": "rullerzhou-afk",
-        "repo": "clawd-on-desk"
+        "provider": "generic",
+        "url": "http://172.28.194.121:10086/updates/clawd-on-desk"
       }
     ]
   },

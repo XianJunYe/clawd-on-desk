@@ -61,7 +61,6 @@ const i18n = {
     checkingForUpdates: "Checking for Updates…",
     updateAvailable: "Update Available",
     updateAvailableMsg: "v{version} is available. Download and install now?",
-    updateAvailableMacMsg: "v{version} is available. Open the download page?",
     updateNotAvailable: "You're Up to Date",
     updateNotAvailableMsg: "Clawd v{version} is the latest version.",
     updateDownloading: "Downloading Update…",
@@ -102,7 +101,6 @@ const i18n = {
     checkingForUpdates: "正在检查更新…",
     updateAvailable: "发现新版本",
     updateAvailableMsg: "v{version} 已发布，是否下载并安装？",
-    updateAvailableMacMsg: "v{version} 已发布，是否打开下载页面？",
     updateNotAvailable: "已是最新版本",
     updateNotAvailableMsg: "Clawd v{version} 已是最新版本。",
     updateDownloading: "正在下载更新…",
@@ -1716,6 +1714,14 @@ function getAutoUpdater() {
       _autoUpdater = require("electron-updater").autoUpdater;
       _autoUpdater.autoDownload = false;
       _autoUpdater.autoInstallOnAppQuit = true;
+      // Set feed URL from update-config.json
+      try {
+        const updateConfig = require(require("path").join(__dirname, "..", "update-config.json"));
+        const feedUrl = `${updateConfig.serverUrl}/updates/${updateConfig.appId}`;
+        _autoUpdater.setFeedURL({ provider: "generic", url: feedUrl });
+      } catch {
+        console.warn("Clawd: update-config.json not found, using built-in publish config");
+      }
     } catch {
       console.warn("Clawd: electron-updater not available, auto-update disabled");
       return null;
@@ -1736,42 +1742,23 @@ function setupAutoUpdater() {
     if (!wasManual && (doNotDisturb || miniMode)) return;
     updateStatus = "available";
     rebuildAllMenus();
-    if (isMac) {
-      // macOS: no code signing → can't auto-update, open GitHub Releases page instead
-      dialog.showMessageBox({
-        type: "info",
-        title: t("updateAvailable"),
-        message: t("updateAvailableMacMsg").replace("{version}", info.version),
-        buttons: [t("download"), t("restartLater")],
-        defaultId: 0,
-        noLink: true,
-      }).then(({ response }) => {
-        if (response === 0) {
-          shell.openExternal("https://github.com/rullerzhou-afk/clawd-on-desk/releases/latest");
-        }
+    dialog.showMessageBox({
+      type: "info",
+      title: t("updateAvailable"),
+      message: t("updateAvailableMsg").replace("{version}", info.version),
+      buttons: [t("download"), t("restartLater")],
+      defaultId: 0,
+      noLink: true,
+    }).then(({ response }) => {
+      if (response === 0) {
+        updateStatus = "downloading";
+        rebuildAllMenus();
+        autoUpdater.downloadUpdate();
+      } else {
         updateStatus = "idle";
         rebuildAllMenus();
-      });
-    } else {
-      // Windows: auto-download
-      dialog.showMessageBox({
-        type: "info",
-        title: t("updateAvailable"),
-        message: t("updateAvailableMsg").replace("{version}", info.version),
-        buttons: [t("download"), t("restartLater")],
-        defaultId: 0,
-        noLink: true,
-      }).then(({ response }) => {
-        if (response === 0) {
-          updateStatus = "downloading";
-          rebuildAllMenus();
-          autoUpdater.downloadUpdate();
-        } else {
-          updateStatus = "idle";
-          rebuildAllMenus();
-        }
-      });
-    }
+      }
+    });
   });
 
   autoUpdater.on("update-not-available", () => {
